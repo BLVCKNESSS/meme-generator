@@ -27,7 +27,9 @@ const toast          = document.getElementById('toast');
 const navTabs        = document.querySelectorAll('.nav-tab');
 const tabContents    = document.querySelectorAll('.tab-content');
 
-// ── Share modal elements ──────────────────────────────────────
+const btnClearImage  = document.getElementById('btn-clear-image');
+
+
 const shareOverlay      = document.getElementById('share-overlay');
 const shareClose        = document.getElementById('share-close');
 const shareWhatsapp     = document.getElementById('share-whatsapp');
@@ -55,8 +57,6 @@ navTabs.forEach(tab => {
 
 // ── 4. CHARGEMENT DE L'IMAGE ──────────────────────────────────
 
-uploadZone.addEventListener('click', () => imageInput.click());
-
 imageInput.addEventListener('change', e => {
   const file = e.target.files[0];
   if (file) loadImageFile(file);
@@ -82,10 +82,7 @@ uploadZone.addEventListener('drop', e => {
 });
 
 function loadImageFile(file) {
-  if (file.size > 10 * 1024 * 1024) {
-    showToast('Image trop lourde (max 10 Mo)');
-    return;
-  }
+
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
@@ -97,6 +94,7 @@ function loadImageFile(file) {
       canvas.height = Math.round(img.height * scale);
       canvas.style.display      = 'block';
       placeholder.style.display = 'none';
+      btnClearImage.style.display = 'flex';
       drawMeme();
       showToast('Image chargée !');
     };
@@ -172,6 +170,19 @@ function triggerDownload() {
   link.href     = canvas.toDataURL('image/png');
   link.click();
 }
+
+// ── SUPPRESSION DE L'IMAGE ────────────────────────────────────
+btnClearImage.addEventListener('click', () => {
+  currentImage = null;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.style.display      = 'none';
+  placeholder.style.display = 'flex';
+  imageInput.value          = '';          // permet de re-sélectionner le même fichier
+  topTextInput.value        = '';
+  botTextInput.value        = '';
+  btnClearImage.style.display = 'none';
+  showToast('Image supprimée');
+});
 
 // ── 8. SAUVEGARDE GALERIE (localStorage) ─────────────────────
 
@@ -300,73 +311,113 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeShareModal();
 });
 
-// ─── Texte & URL pour les partages ───────────────────────────
-const SHARE_TEXT = 'Regarde ce mème ! Créé avec MemeForge 🔥';
-// Pour FB/Telegram qui nécessitent une URL, on utilise la page courante
-// (idéalement remplace cela par l'URL hébergée de ton mème)
-const SHARE_URL  = encodeURIComponent(window.location.href);
-const SHARE_MSG  = encodeURIComponent(SHARE_TEXT);
+// ─── Copie le mème dans le presse-papier ─────────────────────
+// Retourne true si succès, false si le navigateur bloque
+async function copyMemeToClipboard() {
+  try {
+    const blob = await canvasToBlob();
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stratégie commune pour WhatsApp, Facebook, Telegram :
+ * 1. Copie l'image dans le presse-papier
+ * 2. Ouvre la plateforme dans un nouvel onglet
+ * 3. Affiche un toast guidant l'utilisateur pour coller (Ctrl+V)
+ * Fallback : télécharge l'image si le clipboard est bloqué
+ */
+async function shareViaPlatform({ url, platformName, pasteHint }) {
+  const copied = await copyMemeToClipboard();
+
+  if (copied) {
+    showShareInstructions(platformName, pasteHint);
+  } else {
+    // Clipboard bloqué (navigateur ou permissions) → télécharge à la place
+    triggerDownload();
+    showToast(`Image téléchargée — envoie-la manuellement sur ${platformName}`);
+  }
+
+  setTimeout(() => window.open(url, '_blank'), 300);
+  closeShareModal();
+}
+
+// ─── Bannière d'instruction collage ──────────────────────────
+// Affiche une notification persistante guidant l'utilisateur
+function showShareInstructions(platform, hint) {
+  // Retire une éventuelle bannière existante
+  const old = document.getElementById('paste-banner');
+  if (old) old.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'paste-banner';
+  banner.innerHTML = `
+    <span class="paste-banner-icon">📋</span>
+    <div class="paste-banner-text">
+      <strong>Mème copié !</strong>
+      <span>${hint}</span>
+    </div>
+    <button class="paste-banner-close" onclick="this.parentElement.remove()">✕</button>
+  `;
+  document.body.appendChild(banner);
+
+  // Auto-suppression après 12 s
+  setTimeout(() => { if (banner.parentElement) banner.remove(); }, 12000);
+}
 
 // ─── WhatsApp ─────────────────────────────────────────────────
-// WhatsApp ne supporte pas l'envoi de fichier via URL ;
-// on télécharge l'image en premier, puis on ouvre WhatsApp avec le texte.
 shareWhatsapp.addEventListener('click', () => {
-  triggerDownload();
-  setTimeout(() => {
-    window.open(`https://api.whatsapp.com/send?text=${SHARE_MSG}`, '_blank');
-    showToast('Image téléchargée — partage dans WhatsApp !');
-    closeShareModal();
-  }, 400);
+  shareViaPlatform({
+    url: 'https://web.whatsapp.com/',
+    platformName: 'WhatsApp',
+    pasteHint: 'Dans WhatsApp Web, ouvre une conversation et colle (Ctrl+V / Cmd+V).'
+  });
 });
 
 // ─── Facebook ─────────────────────────────────────────────────
-// Facebook nécessite une URL publique. On ouvre le sharer et on conseille
-// d'uploader l'image téléchargée depuis la boîte de dialogue Facebook.
 shareFacebook.addEventListener('click', () => {
-  triggerDownload();
-  setTimeout(() => {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${SHARE_URL}&quote=${SHARE_MSG}`, '_blank');
-    showToast('Image téléchargée — ajoute-la dans Facebook !');
-    closeShareModal();
-  }, 400);
+  shareViaPlatform({
+    url: 'https://www.facebook.com/',
+    platformName: 'Facebook',
+    pasteHint: 'Dans le compositeur de post Facebook, colle l\'image (Ctrl+V / Cmd+V).'
+  });
 });
 
 // ─── Telegram ─────────────────────────────────────────────────
 shareTelegram.addEventListener('click', () => {
-  triggerDownload();
-  setTimeout(() => {
-    window.open(`https://t.me/share/url?url=${SHARE_URL}&text=${SHARE_MSG}`, '_blank');
-    showToast('Image téléchargée — envoie-la dans Telegram !');
-    closeShareModal();
-  }, 400);
+  shareViaPlatform({
+    url: 'https://web.telegram.org/',
+    platformName: 'Telegram',
+    pasteHint: 'Dans Telegram Web, ouvre un chat et colle l\'image (Ctrl+V / Cmd+V).'
+  });
 });
 
 // ─── Twitter / X ──────────────────────────────────────────────
-shareTwitter.addEventListener('click', () => {
-  window.open(`https://twitter.com/intent/tweet?text=${SHARE_MSG}`, '_blank');
-  showToast('Ouverture Twitter/X...');
+shareTwitter.addEventListener('click', async () => {
+  const copied = await copyMemeToClipboard();
+  window.open('https://twitter.com/intent/tweet', '_blank');
+  if (copied) {
+    showShareInstructions('Twitter/X', 'Dans la fenêtre de tweet, colle l\'image (Ctrl+V / Cmd+V).');
+  } else {
+    triggerDownload();
+    showToast('Image téléchargée — joins-la à ton tweet !');
+  }
   closeShareModal();
 });
 
 // ─── Copier l'image dans le presse-papier ─────────────────────
 shareCopy.addEventListener('click', async () => {
-  try {
-    const blob = await canvasToBlob();
-    await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': blob })
-    ]);
-    showToast('Image copiée dans le presse-papier !');
-    closeShareModal();
-  } catch (err) {
-    // Fallback : copier le texte si le navigateur bloque l'image
-    try {
-      await navigator.clipboard.writeText(SHARE_TEXT + ' ' + window.location.href);
-      showToast('Lien copié (image non supportée dans ce navigateur)');
-      closeShareModal();
-    } catch {
-      showToast('Impossible de copier. Télécharge l\'image manuellement.');
-    }
+  const copied = await copyMemeToClipboard();
+  if (copied) {
+    showToast('✅ Image copiée — colle-la où tu veux (Ctrl+V) !');
+  } else {
+    triggerDownload();
+    showToast('Clipboard non supporté — image téléchargée à la place.');
   }
+  closeShareModal();
 });
 
 // ─── Bouton téléchargement dans le modal ──────────────────────

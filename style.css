@@ -233,6 +233,14 @@ body {
 }
 .btn-danger:hover { background: #e24b4a22; }
 
+.btn-clear-image {
+  background: transparent;
+  color: #e24b4a;
+  border: 1px solid #e24b4a44;
+  font-size: 13px;
+}
+.btn-clear-image:hover { background: #e24b4a18; border-color: #e24b4a; }
+
 /* ─── CANVAS AREA ─────────────────────────────────────────── */
 .canvas-area {
   display: flex;
@@ -556,6 +564,57 @@ body {
   padding: 9px 20px;
   font-size: 13px;
 }
+
+/* ─── PASTE BANNER ───────────────────────────────────────────
+   Bannière guidant l'utilisateur à coller l'image après partage
+─────────────────────────────────────────────────────────────── */
+#paste-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-90px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1a1a1a;
+  border: 1px solid #25D366;
+  border-radius: 14px;
+  padding: 14px 18px 14px 16px;
+  z-index: 600;
+  max-width: 440px;
+  width: calc(100% - 32px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: bannerSlideIn 0.35s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+
+@keyframes bannerSlideIn {
+  from { transform: translateX(-50%) translateY(-90px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+.paste-banner-icon { font-size: 24px; flex-shrink: 0; }
+
+.paste-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.paste-banner-text strong { font-size: 14px; font-weight: 700; color: #f0f0f0; }
+.paste-banner-text span   { font-size: 12px; color: #aaa; line-height: 1.4; }
+
+.paste-banner-close {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.paste-banner-close:hover { color: #e24b4a; background: #e24b4a18; }
 
 /* ─── SCROLLBAR ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
