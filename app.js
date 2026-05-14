@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 //  MemeForge — app.js
-//  Phase 2 : Canvas, texte temps réel, galerie, téléchargement
+//  Phase 2 + Partage réseaux sociaux (WhatsApp, Facebook, Telegram, X)
 // ─────────────────────────────────────────────────────────────
 
 // ── 1. SÉLECTION DES ÉLÉMENTS DOM ────────────────────────────
@@ -26,6 +26,17 @@ const btnClear       = document.getElementById('btn-clear-gallery');
 const toast          = document.getElementById('toast');
 const navTabs        = document.querySelectorAll('.nav-tab');
 const tabContents    = document.querySelectorAll('.tab-content');
+
+// ── Share modal elements ──────────────────────────────────────
+const shareOverlay      = document.getElementById('share-overlay');
+const shareClose        = document.getElementById('share-close');
+const shareWhatsapp     = document.getElementById('share-whatsapp');
+const shareFacebook     = document.getElementById('share-facebook');
+const shareTelegram     = document.getElementById('share-telegram');
+const shareTwitter      = document.getElementById('share-twitter');
+const shareCopy         = document.getElementById('share-copy');
+const shareDownloadHint = document.getElementById('share-download-hint');
+const shareDlBtn        = document.getElementById('share-dl-btn');
 
 // ── 2. ÉTAT DE L'APPLICATION ──────────────────────────────────
 let currentImage = null;
@@ -151,12 +162,16 @@ function drawMeme() {
 
 btnDownload.addEventListener('click', () => {
   if (!currentImage) { showToast('Charge d\'abord une image !'); return; }
+  triggerDownload();
+  showToast('Mème téléchargé !');
+});
+
+function triggerDownload() {
   const link    = document.createElement('a');
   link.download = 'meme-' + Date.now() + '.png';
   link.href     = canvas.toDataURL('image/png');
   link.click();
-  showToast('Mème téléchargé !');
-});
+}
 
 // ── 8. SAUVEGARDE GALERIE (localStorage) ─────────────────────
 
@@ -236,12 +251,17 @@ btnClear.addEventListener('click', () => {
   }
 });
 
-// ── 10. PARTAGE ───────────────────────────────────────────────
+// ── 10. MODAL DE PARTAGE ──────────────────────────────────────
 
+/**
+ * Ouvre le modal de partage.
+ * Sur mobile, tente d'abord le Web Share API natif.
+ * Sur desktop (ou si échec), affiche le modal avec les options réseaux sociaux.
+ */
 btnShare.addEventListener('click', async () => {
   if (!currentImage) { showToast('Charge d\'abord une image !'); return; }
 
-  // Web Share API natif (mobile)
+  // Tentative Web Share API natif (mobile uniquement)
   if (navigator.share && navigator.canShare) {
     try {
       const blob = await canvasToBlob();
@@ -252,21 +272,114 @@ btnShare.addEventListener('click', async () => {
         return;
       }
     } catch (err) {
-      if (err.name !== 'AbortError') console.warn('Share error:', err);
+      if (err.name === 'AbortError') return; // L'utilisateur a annulé
+      // Sinon, affiche le modal comme fallback
     }
   }
 
-  // Fallback desktop : Twitter/X
-  const text = encodeURIComponent('Regarde ce mème ! Créé avec MemeForge');
-  window.open('https://twitter.com/intent/tweet?text=' + text, '_blank');
-  showToast('Ouverture Twitter/X...');
+  openShareModal();
 });
+
+function openShareModal() {
+  shareDownloadHint.classList.remove('visible');
+  shareOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeShareModal() {
+  shareOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Fermeture
+shareClose.addEventListener('click', closeShareModal);
+shareOverlay.addEventListener('click', e => {
+  if (e.target === shareOverlay) closeShareModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeShareModal();
+});
+
+// ─── Texte & URL pour les partages ───────────────────────────
+const SHARE_TEXT = 'Regarde ce mème ! Créé avec MemeForge 🔥';
+// Pour FB/Telegram qui nécessitent une URL, on utilise la page courante
+// (idéalement remplace cela par l'URL hébergée de ton mème)
+const SHARE_URL  = encodeURIComponent(window.location.href);
+const SHARE_MSG  = encodeURIComponent(SHARE_TEXT);
+
+// ─── WhatsApp ─────────────────────────────────────────────────
+// WhatsApp ne supporte pas l'envoi de fichier via URL ;
+// on télécharge l'image en premier, puis on ouvre WhatsApp avec le texte.
+shareWhatsapp.addEventListener('click', () => {
+  triggerDownload();
+  setTimeout(() => {
+    window.open(`https://api.whatsapp.com/send?text=${SHARE_MSG}`, '_blank');
+    showToast('Image téléchargée — partage dans WhatsApp !');
+    closeShareModal();
+  }, 400);
+});
+
+// ─── Facebook ─────────────────────────────────────────────────
+// Facebook nécessite une URL publique. On ouvre le sharer et on conseille
+// d'uploader l'image téléchargée depuis la boîte de dialogue Facebook.
+shareFacebook.addEventListener('click', () => {
+  triggerDownload();
+  setTimeout(() => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${SHARE_URL}&quote=${SHARE_MSG}`, '_blank');
+    showToast('Image téléchargée — ajoute-la dans Facebook !');
+    closeShareModal();
+  }, 400);
+});
+
+// ─── Telegram ─────────────────────────────────────────────────
+shareTelegram.addEventListener('click', () => {
+  triggerDownload();
+  setTimeout(() => {
+    window.open(`https://t.me/share/url?url=${SHARE_URL}&text=${SHARE_MSG}`, '_blank');
+    showToast('Image téléchargée — envoie-la dans Telegram !');
+    closeShareModal();
+  }, 400);
+});
+
+// ─── Twitter / X ──────────────────────────────────────────────
+shareTwitter.addEventListener('click', () => {
+  window.open(`https://twitter.com/intent/tweet?text=${SHARE_MSG}`, '_blank');
+  showToast('Ouverture Twitter/X...');
+  closeShareModal();
+});
+
+// ─── Copier l'image dans le presse-papier ─────────────────────
+shareCopy.addEventListener('click', async () => {
+  try {
+    const blob = await canvasToBlob();
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': blob })
+    ]);
+    showToast('Image copiée dans le presse-papier !');
+    closeShareModal();
+  } catch (err) {
+    // Fallback : copier le texte si le navigateur bloque l'image
+    try {
+      await navigator.clipboard.writeText(SHARE_TEXT + ' ' + window.location.href);
+      showToast('Lien copié (image non supportée dans ce navigateur)');
+      closeShareModal();
+    } catch {
+      showToast('Impossible de copier. Télécharge l\'image manuellement.');
+    }
+  }
+});
+
+// ─── Bouton téléchargement dans le modal ──────────────────────
+shareDlBtn.addEventListener('click', () => {
+  triggerDownload();
+  showToast('Mème téléchargé !');
+});
+
+// ── 11. UTILITAIRES ───────────────────────────────────────────
 
 function canvasToBlob() {
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
-
-// ── 11. TOAST ─────────────────────────────────────────────────
 
 function showToast(message) {
   if (toastTimer) clearTimeout(toastTimer);
@@ -276,4 +389,4 @@ function showToast(message) {
 }
 
 // ── 12. INIT ──────────────────────────────────────────────────
-console.log('MemeForge v1.0 — prêt ✅');
+console.log('MemeForge v1.1 — partage réseaux sociaux activé ✅');
