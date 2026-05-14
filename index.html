@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MemeForge — Générateur de Mèmes</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <!-- ─── HEADER ─────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-icon"> </span>
+      <span class="logo-text">MemeForge</span>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="editor">Éditeur</button>
+      <button class="nav-tab" data-tab="gallery">Galerie</button>
+    </nav>
+  </header>
+
+  <!-- ─── PAGE : ÉDITEUR ────────────────────────────────── -->
+  <main id="tab-editor" class="tab-content active">
+    <div class="editor-layout">
+
+      <!-- Panneau gauche : contrôles -->
+      <aside class="panel controls-panel">
+        <h2 class="panel-title">Personnalise ton mème</h2>
+
+        <!-- Upload image -->
+        <section class="control-section">
+          <label class="section-label">📁 Image</label>
+          <label class="upload-zone" id="upload-zone">
+            <input type="file" id="image-input" accept="image/*" hidden />
+            <i class="upload-icon">⬆</i>
+            <span class="upload-text">Clique ou glisse une image ici</span>
+            <span class="upload-sub">PNG, JPG, WEBP — max 10 Mo</span>
+          </label>
+        </section>
+
+        <!-- Texte haut -->
+        <section class="control-section">
+          <label class="section-label"> Texte du haut</label>
+          <input class="text-input" type="text" id="top-text" placeholder="TEXTE DU HAUT..." maxlength="80"/>
+        </section>
+
+        <!-- Texte bas -->
+        <section class="control-section">
+          <label class="section-label"> Texte du bas</label>
+          <input class="text-input" type="text" id="bottom-text" placeholder="TEXTE DU BAS..." maxlength="80"/>
+        </section>
+
+        <!-- Style du texte -->
+        <section class="control-section">
+          <label class="section-label">🎨 Style du texte</label>
+          <div class="style-grid">
+            <div class="style-item">
+              <label class="style-label">Taille</label>
+              <input type="range" id="font-size" min="20" max="80" value="42" class="slider"/>
+              <span class="slider-val" id="font-size-val">42px</span>
+            </div>
+            <div class="style-item">
+              <label class="style-label">Couleur texte</label>
+              <input type="color" id="text-color" value="#ffffff" class="color-pick"/>
+            </div>
+            <div class="style-item">
+              <label class="style-label">Couleur contour</label>
+              <input type="color" id="stroke-color" value="#000000" class="color-pick"/>
+            </div>
+            <div class="style-item">
+              <label class="style-label">Épaisseur contour</label>
+              <input type="range" id="stroke-width" min="0" max="10" value="3" class="slider"/>
+              <span class="slider-val" id="stroke-width-val">3px</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Boutons actions -->
+        <section class="control-section actions">
+          <button class="btn btn-primary" id="btn-download">
+            ⬇ Télécharger le mème
+          </button>
+          <button class="btn btn-secondary" id="btn-save">
+            💾 Sauvegarder dans la galerie
+          </button>
+          <button class="btn btn-share" id="btn-share">
+            🔗 Partager
+          </button>
+        </section>
+      </aside>
+
+      <!-- Zone centrale : canvas prévisualisation -->
+      <section class="canvas-area">
+        <div class="canvas-wrapper" id="canvas-wrapper">
+          <canvas id="meme-canvas"></canvas>
+          <div class="canvas-placeholder" id="canvas-placeholder">
+            <span class="placeholder-emoji">🖼</span>
+            <span class="placeholder-text">Charge une image pour commencer</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ─── PAGE : GALERIE ────────────────────────────────── -->
+  <main id="tab-gallery" class="tab-content">
+    <div class="gallery-layout">
+      <div class="gallery-header">
+        <h2 class="gallery-title">Mes mèmes créés</h2>
+        <button class="btn btn-danger" id="btn-clear-gallery">🗑 Vider la galerie</button>
+      </div>
+      <div class="gallery-grid" id="gallery-grid">
+        <div class="gallery-empty" id="gallery-empty">
+          <span>😢</span>
+          <p>Aucun mème sauvegardé pour l'instant.</p>
+          <p>Crée ton premier mème dans l'éditeur !</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ─── TOAST NOTIFICATION ───────────────────────────── -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
