@@ -88,6 +88,9 @@
           <button class="btn btn-share" id="btn-share">
             🔗 Partager
           </button>
+          <button class="btn btn-secondary" id="btn-crop" style="display:none">
+            ✂️ Recadrer l'image
+          </button>
           <button class="btn btn-clear-image" id="btn-clear-image" style="display:none">
             🗑 Supprimer l'image
           </button>
@@ -97,10 +100,27 @@
       <!-- Zone centrale : canvas prévisualisation -->
       <section class="canvas-area">
         <div class="canvas-wrapper" id="canvas-wrapper">
-          <canvas id="meme-canvas"></canvas>
+
+          <!-- Zone de dessin + overlay recadrage -->
+          <div class="canvas-inner" id="canvas-inner">
+            <canvas id="meme-canvas"></canvas>
+            <canvas id="crop-overlay" style="display:none"></canvas>
+            <!-- Bouton recadrage flottant sur l'image -->
+            <button class="canvas-crop-fab" id="canvas-crop-fab" style="display:none" title="Recadrer l'image">✂️</button>
+          </div>
+
           <div class="canvas-placeholder" id="canvas-placeholder">
             <span class="placeholder-emoji">🖼</span>
             <span class="placeholder-text">Charge une image pour commencer</span>
+          </div>
+        </div>
+
+        <!-- Barre de contrôle du recadrage (visible seulement en mode crop) -->
+        <div class="crop-controls" id="crop-controls" style="display:none">
+          <span class="crop-hint">Glisse les poignées pour recadrer</span>
+          <div class="crop-btns">
+            <button class="btn btn-primary crop-btn" id="btn-crop-confirm">✓ Confirmer</button>
+            <button class="btn btn-secondary crop-btn" id="btn-crop-cancel">✕ Annuler</button>
           </div>
         </div>
       </section>
@@ -207,6 +227,29 @@
         <p>Télécharge le mème, puis partage-le manuellement sur la plateforme.</p>
       </div>
     </div>
+  </div>
+
+  <!-- ─── LIGHTBOX GALERIE ─────────────────────────────── -->
+  <div class="lightbox-overlay" id="lightbox-overlay">
+    <div class="lightbox-box">
+      <button class="lightbox-close" id="lightbox-close" aria-label="Fermer">✕</button>
+      <img class="lightbox-img" id="lightbox-img" src="" alt="Mème agrandi" />
+      <div class="lightbox-actions">
+        <button class="btn btn-primary lightbox-btn" id="lightbox-edit">
+          ✏️ Retour aux modifications
+        </button>
+        <button class="btn btn-secondary lightbox-btn" id="lightbox-dl">
+          ⬇ Télécharger
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MENU CONTEXTUEL TEXTE ────────────────────────── -->
+  <div class="text-ctx-menu" id="text-ctx-menu">
+    <div class="text-ctx-label" id="text-ctx-label">Texte du haut</div>
+    <button class="text-ctx-btn" id="ctx-edit">✏️ Modifier</button>
+    <button class="text-ctx-btn text-ctx-del" id="ctx-delete">🗑 Supprimer</button>
   </div>
 
   <!-- ─── TOAST NOTIFICATION ───────────────────────────── -->
