@@ -835,4 +835,28 @@ function showToast(message) {
 }
 
 // ── 12. INIT ──────────────────────────────────────────────────
-console.log('MemeForge v1.1 — partage réseaux sociaux activé ✅');
+// ── 13. TOGGLE THÈME ──────────────────────────────────────────
+const themeToggle = document.getElementById('theme-toggle');
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light');
+    themeToggle.textContent = '☀️';
+    themeToggle.title = 'Passer en mode sombre';
+  } else {
+    document.body.classList.remove('light');
+    themeToggle.textContent = '🌙';
+    themeToggle.title = 'Passer en mode clair';
+  }
+  localStorage.setItem('memeforge_theme', theme);
+}
+
+themeToggle.addEventListener('click', () => {
+  const current = document.body.classList.contains('light') ? 'light' : 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+});
+
+// Restaure le thème sauvegardé au chargement
+applyTheme(localStorage.getItem('memeforge_theme') || 'dark');
+
+console.log('MemeForge v1.2 — thème clair/sombre ✅');
